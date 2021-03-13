@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="eaiscenarioreporter",
-    version="0.0.10",
+    version="0.0.11",
     description="Turns folder of gherkin feature files into a docx file.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -47,7 +47,7 @@ setup(
     package_data={'featurereporter': ['assets/*.png', 'assets/*.txt']},
     author="Eric Aïvayan",
     author_email="eric.aivayan@free.fr",
-    url="https://github.com/Hidden-goblin/eaitoolbox/tree/master/eaireporter/FeatureReporter",
+    url="https://github.com/Hidden-goblin/eaiscenarioreporter.git",
     data_files=[('assets', ['featurereporter/assets/valid.png', 'featurereporter/assets/warning.png'])],
     entry_points={"console_scripts": ["featurereporter=featurereporter.featurereporter:main"]}
 )
