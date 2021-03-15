@@ -48,6 +48,7 @@ setup(
     author="Eric Aïvayan",
     author_email="eric.aivayan@free.fr",
     url="https://github.com/Hidden-goblin/eaiscenarioreporter.git",
-    data_files=[('assets', ['featurereporter/assets/valid.png', 'featurereporter/assets/warning.png'])],
+    data_files=[('assets', ['featurereporter/assets/valid.png',
+                            'featurereporter/assets/warning.png'])],
     entry_points={"console_scripts": ["featurereporter=featurereporter.featurereporter:main"]}
 )

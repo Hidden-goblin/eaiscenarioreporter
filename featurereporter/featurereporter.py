@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 LICENCE = """ ExportUtilities  Copyright (C) 2021  E.Aivayan
     This program comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain conditions.
-    
+
     Please see https://opensource.org/licenses/lGPL-3.0
     """
 
@@ -164,7 +164,8 @@ class Application:
         else:
             log.error("Cannot create de report without a feature files repository.")
             messagebox.showerror("Report creation",
-                                 "Cannot create de report without a feature files repository.\n Please select one.")
+                                 "Cannot create de report without a feature files repository.\n "
+                                 "Please select one.")
 
     def __display_legal(self, event):
         print("Display legal")
@@ -179,7 +180,7 @@ class Application:
 
 Pictures disclaimer
 *******************
- 
+
 Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
         text.grid(row=0, column=0)
         tk.Button(fInfos, text='Quitter', command=fInfos.destroy).grid(row=1, column=0)
@@ -197,8 +198,6 @@ Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
         else:
             self.__repository_label["text"] = "Please select a feature file repository."
             self.__respository_status["image"] = self.__picture_warning
-        # self.__respository_status.configure(image=self.__picture_valid)
-        # self.__respository_status.image = self.__picture_valid
 
     def __select_execution(self):
         self.__excution_location = filedialog.askopenfilename(parent=self.__master,
@@ -296,6 +295,8 @@ class ExportUtilities:
         else:
             please_copy = False
 
+        log.info(f"We are on {platform.system()} and we need to copy is set to {please_copy}")
+
         for file in glob.iglob("{}/**/*.feature".format(self.__feature_repository),
                                recursive=True):  # Use the iterator as it's cleaner
             # log.debug()
@@ -306,7 +307,8 @@ class ExportUtilities:
                 temp_file = os.path.abspath(file)
             try:
                 # if file drive is not current cp file and use that copy
-                test = parse_file(temp_file)  # Use the Behave parser in order to read the feature file
+                # Use the Behave parser in order to read the feature file
+                test = parse_file(temp_file)
 
                 self.add_heading(feature=test)
                 self.add_description(feature=test)
@@ -320,6 +322,7 @@ class ExportUtilities:
         if report_file is not None:
             self.add_report(file=report_file)
         self.document.save(output_file_name)
+        log.info("Processing done.")
 
     def add_heading(self, feature=None):
         """
@@ -491,7 +494,7 @@ class ExportUtilities:
                         last_status = "skipped"
                         self.document.add_page_break()
                     current_feature = line.split(":")[1].lstrip(' ').rstrip()
-                    reporter[current_feature] = {}
+                    reporter[current_feature] = dict()
                     current_scenario = None  # No scenario for the current feature
                     print(reporter)
                     self.document.add_heading(line.rstrip(), 2)
@@ -559,20 +562,24 @@ def main():
     parser.add_argument("--repository", help="The folder where the feature files are")
     parser.add_argument("--output", help="")
     parser.add_argument("--execution",
-                        help="Behave plain test output in order to also print the last execution result")
+                        help="Behave plain test output in order to "
+                             "also print the last execution result")
     parser.add_argument("--license",
                         help="Display the license.",
                         action="store_true")
 
     args = parser.parse_args()
-    if all([value is None for item, value in vars(args).items() if item != "license"]) and not args.license:
+    if all([value is None for item, value in vars(args).items() if item != "license"]) \
+            and not args.license:
         app = Application()
         app.run()
     else:
         print(args.license)
         if args.license is not None and args.license:
-            with open(os.path.realpath(f"{os.path.dirname(os.path.realpath(__file__))}/assets/LICENSE.txt")) as license:
-                print(license.read())
+            with open(os.path.realpath(
+                    f"{os.path.dirname(os.path.realpath(__file__))}"
+                    f"/assets/LICENSE.txt")) as my_license:
+                print(my_license.read())
                 sys.exit(0)
         if args.repository is None or not args.repository:
             parser.print_help()
@@ -591,6 +598,7 @@ def main():
     Run with --license option to display the full licence""")
         report.create_application_documentation(**parameters)
     sys.exit(0)
+
 
 if __name__ == '__main__':
     main()

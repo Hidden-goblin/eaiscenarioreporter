@@ -4,10 +4,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+flake8 = "*"
+flake8-html = "*"
 
 [packages]
 behave = "*"
 python-docx = "*"
+Pillow = "*"
 
 [requires]
 python_version = "3.8"
