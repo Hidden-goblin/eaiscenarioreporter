@@ -154,7 +154,7 @@ class Application:
                 self.__reporter.report_title = self.__document_name_input.get()
             if self.__us_tag_input.get():
                 self.__reporter.us_tag = self.__us_tag_input.get()
-            param = dict()
+            param = {}
             if self.__document_filename_input.get():
                 param["output_file_name"] = self.__document_filename_input.get()
             if self.__excution_location is not None and self.__excution_location:
@@ -316,7 +316,8 @@ class ExportUtilities:
                 self.add_scenario(feature=test)
                 self.document.add_page_break()
                 # rm the file copy
-                os.remove(temp_file)
+                if please_copy:
+                    os.remove(temp_file)
             except Exception as exception:
                 log.error(exception)
         if report_file is not None:
@@ -475,13 +476,13 @@ class ExportUtilities:
         """
         self.document.add_heading("Last Execution report", 1)
         reporter = {}
-        failed_count = 0
-        succeed_count = 0
-        test_count = 0
         current_feature = None
         current_scenario = None
         last_status = "skipped"
         with open(file) as report_file:
+            failed_count = 0
+            succeed_count = 0
+            test_count = 0
             for line in report_file.readlines():
                 if re.match("Feature.*", line):
                     if current_feature is not None:
@@ -494,7 +495,7 @@ class ExportUtilities:
                         last_status = "skipped"
                         self.document.add_page_break()
                     current_feature = line.split(":")[1].lstrip(' ').rstrip()
-                    reporter[current_feature] = dict()
+                    reporter[current_feature] = {}
                     current_scenario = None  # No scenario for the current feature
                     print(reporter)
                     self.document.add_heading(line.rstrip(), 2)
@@ -569,8 +570,14 @@ def main():
                         action="store_true")
 
     args = parser.parse_args()
-    if all([value is None for item, value in vars(args).items() if item != "license"]) \
-            and not args.license:
+    if (
+        all(
+            value is None
+            for item, value in vars(args).items()
+            if item != "license"
+        )
+        and not args.license
+    ):
         app = Application()
         app.run()
     else:
@@ -589,7 +596,7 @@ def main():
             report.report_title = args.title
         if args.tag is not None and args.tag:
             report.us_tag = args.tag
-        parameters = dict()
+        parameters = {}
         if args.execution is not None and args.execution:
             parameters["report_file"] = args.execution
         if args.output is not None and args.output:
