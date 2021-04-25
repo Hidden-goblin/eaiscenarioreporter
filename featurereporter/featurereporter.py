@@ -6,14 +6,19 @@ import glob
 import logging
 import argparse
 import os
+import subprocess
 import sys
 import tempfile
 import tkinter as tk
 import platform
 
+
 from shutil import copyfile
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+import PIL
+from docx.shared import Cm
 from PIL import ImageTk, Image
 from behave.parser import parse_file
 from docx import Document
@@ -225,6 +230,8 @@ class ExportUtilities:
         self.__user_story_tag_prefix = user_story_tag_prefix
         self.__report_title = report_title
         self.__document = None
+        version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)
+        self.__jre_present = bool(version)
 
     @property
     def feature_repository(self):
@@ -322,6 +329,7 @@ class ExportUtilities:
                 log.error(exception)
         if report_file is not None:
             self.add_report(file=report_file)
+
         self.document.save(output_file_name)
         log.info("Processing done.")
 
@@ -342,6 +350,35 @@ class ExportUtilities:
             log.error(exception)
             raise Exception(exception)
 
+    def __generate_diagrams(self, diagram_path):
+        try:
+            # Assuming that the diagram path is relative to feature folder repository
+            path = Path(f"{self.__feature_repository}/{diagram_path}")
+            resolved = path.resolve()
+
+            # Generate the temporary picture
+            tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
+            subprocess.run(
+                ["java", "-jar", Path("featurereporter/assets/plantuml.jar").absolute(), resolved,
+                 "-o", tmp_pic_folder])
+            gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
+
+            # Resize the picture if too big and to document
+            image = PIL.Image.open(gen_pic_path)
+            width, height = image.size
+            if width > 580 and height < 841:
+                self.document.add_picture(str(gen_pic_path.absolute()), width=Cm(15))
+            elif width < 580 and height > 841:
+                self.document.add_picture(str(gen_pic_path.absolute()), height=Cm(20))
+            elif width > 580 and height > 841:
+                self.document.add_picture(str(gen_pic_path.absolute()), width=Cm(15), height=Cm(20))
+            else:
+                self.document.add_picture(str(gen_pic_path.absolute()))
+
+        except Exception as exception:
+            log.error(exception)
+            raise Exception(exception)
+
     def add_description(self, feature=None):
         """
         Add the feature description into the document.
@@ -358,6 +395,11 @@ class ExportUtilities:
                 elif re.match('[Bb]usiness [Rr]ules.*', line):
                     paragraph = self.document.add_paragraph("")
                     paragraph.add_run(line).bold = True
+                elif re.match(r'!!Workflow:.*', line) and self.__jre_present:
+                    match = re.match(r'^!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*$', line)
+                    if match:
+                        self.__generate_diagrams(match.group(1))
+                    self.document.add_paragraph(line)
                 else:
                     self.document.add_paragraph(line)
         except Exception as exception:
