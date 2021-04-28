@@ -11,6 +11,7 @@ flake8-html = "*"
 behave = "*"
 python-docx = "*"
 Pillow = "*"
+radon = "*"
 
 [requires]
 python_version = "3.8"
