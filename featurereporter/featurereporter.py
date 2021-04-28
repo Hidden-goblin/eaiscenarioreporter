@@ -232,6 +232,7 @@ class ExportUtilities:
         self.__document = None
         version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)
         self.__jre_present = bool(version)
+        self.__jar_path = f"{os.path.dirname(os.path.realpath(__file__))}/assets/plantuml.jar"
 
     @property
     def feature_repository(self):
@@ -359,7 +360,7 @@ class ExportUtilities:
             # Generate the temporary picture
             tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
             subprocess.run(
-                ["java", "-jar", Path("featurereporter/assets/plantuml.jar").absolute(), resolved,
+                ["java", "-jar", Path(self.__jar_path).absolute(), resolved,
                  "-o", tmp_pic_folder])
             gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
 
