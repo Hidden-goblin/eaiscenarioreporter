@@ -358,21 +358,38 @@ class ExportUtilities:
             resolved = path.resolve()
 
             # Generate the temporary picture
-            tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
-            subprocess.run(
-                ["java", "-jar", Path(self.__jar_path).absolute(), resolved,
-                 "-o", tmp_pic_folder])
-            gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
+            try:
+                tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
+                subprocess.run(
+                    ["java", "-jar", Path(self.__jar_path).absolute(), resolved,
+                     "-o", tmp_pic_folder])
+                gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
+            except FileNotFoundError as file_not_found:
+                # Don't break the flow
+                log.warning(file_not_found.args[0])
+                return
 
             # Resize the picture if too big and to document
             image = PIL.Image.open(gen_pic_path)
             width, height = image.size
+            # Preserve image ratio
+            ratio = width / height
             if width > 580 and height < 841:
-                self.document.add_picture(str(gen_pic_path.absolute()), width=Cm(15))
+                self.document.add_picture(str(gen_pic_path.absolute()),
+                                          width=Cm(15),
+                                          height=Cm(15 / ratio))
             elif width < 580 and height > 841:
-                self.document.add_picture(str(gen_pic_path.absolute()), height=Cm(20))
+                self.document.add_picture(str(gen_pic_path.absolute()),
+                                          width=Cm(20 * ratio),
+                                          height=Cm(20))
             elif width > 580 and height > 841:
-                self.document.add_picture(str(gen_pic_path.absolute()), width=Cm(15), height=Cm(20))
+                reduce_factor = max(width / 580, height / 841)
+                new_width = (width * 15) / (580 * reduce_factor)  # Double proportionality on ratio
+                # and pixel against cm
+                new_height = (height * 20) / (841 * reduce_factor)
+                self.document.add_picture(str(gen_pic_path.absolute()),
+                                          width=Cm(new_width),
+                                          height=Cm(new_height))
             else:
                 self.document.add_picture(str(gen_pic_path.absolute()))
 
