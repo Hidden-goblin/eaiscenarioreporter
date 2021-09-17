@@ -233,6 +233,7 @@ class ExportUtilities:
         version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)
         self.__jre_present = bool(version)
         self.__jar_path = f"{os.path.dirname(os.path.realpath(__file__))}/assets/plantuml.jar"
+        self.__current_feature_tags = None
 
     @property
     def feature_repository(self):
@@ -347,6 +348,8 @@ class ExportUtilities:
             if self.us_tag is not None:
                 matcher = [elem for elem in feature.tags if self.us_tag in elem]
                 paragraph.add_run("Related to the user story: {}".format(str(matcher).strip('[]')))
+            if feature.tags:
+                paragraph.add_run(f"Feature tags are {str(feature.tags).strip('[]')}")
         except Exception as exception:
             log.error(exception)
             raise Exception(exception)
@@ -451,6 +454,11 @@ class ExportUtilities:
                     log.info(f"Processing scenario {scenario.name}")
                     self.print_scenario_title(scenario_keyword=scenario.keyword,
                                               scenario_name=scenario.name)
+                    paragraph = self.document.add_paragraph("Scenario tags are ", style='No spacing')
+                    if feature.tags:
+                        paragraph.add_run({str(feature.tags).strip('[]')})
+                    if scenario.tags:
+                        paragraph.add_run({str(scenario.tags).strip('[]')})
                     self.print_steps(steps=scenario.steps)
                     if scenario.type == 'scenario_outline':
                         self.print_examples(examples=scenario.examples)
