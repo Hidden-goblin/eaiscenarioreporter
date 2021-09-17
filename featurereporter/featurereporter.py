@@ -44,7 +44,7 @@ class Application:
         self.__repository_label = None
         self.__repository_select_button = None
         self.__repository_location = None
-        self.__respository_status = None
+        self.__repository_status = None
         self.__picture_valid = None
         self.__picture_warning = None
         # Created document
@@ -59,7 +59,7 @@ class Application:
         self.__execution_result_status = None
         self.__execution_result_button = None
         self.__execution_result_reset = None
-        self.__excution_location = None
+        self.__execution_location = None
         # Other UI thing
         self.__quit = None
         self.__readme_button = None
@@ -83,7 +83,7 @@ class Application:
         warning = warning.resize((20, 20), Image.ANTIALIAS)
         self.__picture_warning = ImageTk.PhotoImage(warning)
         # Repository
-        self.__respository_status = tk.Label(self.__master, image=self.__picture_warning)
+        self.__repository_status = tk.Label(self.__master, image=self.__picture_warning)
         self.__repository_label = tk.Label(self.__master,
                                            text="Please select a feature file repository.",
                                            wraplength="250")
@@ -96,7 +96,7 @@ class Application:
         self.__document_name_input = tk.Entry(self.__master)
         # Document filename
         self.__document_filename_label = tk.Label(self.__master,
-                                                  text="Document filname: ")
+                                                  text="Document filename: ")
         self.__document_filename_input = tk.Entry(self.__master)
         # US Tag
         self.__us_tag_label = tk.Label(self.__master,
@@ -124,7 +124,7 @@ class Application:
 
     def create_layout(self):
         self.__legal_label.grid(row=0, column=4)
-        self.__respository_status.grid(row=1, column=0)
+        self.__repository_status.grid(row=1, column=0)
         self.__repository_label.grid(row=1, column=1)
         self.__repository_select_button.grid(row=1, column=3, columnspan=4)
         self.__document_name_label.grid(row=2, column=0)
@@ -145,7 +145,7 @@ class Application:
     def __display_readme():
         messagebox.showinfo("Quick manual",
                             """1- Select the folder where you store the feature files
- Optionaly:
+ Optionally:
      2- Select the report title
      3- Select the report file name
      4- Select the tag linking to US
@@ -162,8 +162,8 @@ class Application:
             param = {}
             if self.__document_filename_input.get():
                 param["output_file_name"] = self.__document_filename_input.get()
-            if self.__excution_location is not None and self.__excution_location:
-                param["report_file"] = self.__excution_location
+            if self.__execution_location is not None and self.__execution_location:
+                param["report_file"] = self.__execution_location
             print(param)
             self.__reporter.create_application_documentation(**param)
         else:
@@ -173,10 +173,10 @@ class Application:
                                  "Please select one.")
 
     def __display_legal(self, event):
-        print("Display legal")
-        fInfos = Toplevel()  # Popup -> Toplevel()
-        fInfos.title('Infos')
-        text = tk.Text(fInfos, height=15, width=90)
+        log.debug("Display legal")
+        f_infos = Toplevel()  # Popup -> Toplevel()
+        f_infos.title('Infos')
+        text = tk.Text(f_infos, height=15, width=90)
         text.insert(tk.END,
                     f"""License
 *******
@@ -188,10 +188,10 @@ Pictures disclaimer
 
 Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
         text.grid(row=0, column=0)
-        tk.Button(fInfos, text='Quitter', command=fInfos.destroy).grid(row=1, column=0)
-        fInfos.transient(self.__master)  # Réduction popup impossible
-        fInfos.grab_set()  # Interaction avec fenetre jeu impossible
-        self.__master.wait_window(fInfos)  # Arrêt script principal
+        tk.Button(f_infos, text='Quitter', command=f_infos.destroy).grid(row=1, column=0)
+        f_infos.transient(self.__master)  # Réduction popup impossible
+        f_infos.grab_set()  # Interaction avec fenetre jeu impossible
+        self.__master.wait_window(f_infos)  # Arrêt script principal
 
     def __select_repository(self):
         self.__repository_location = filedialog.askdirectory(parent=self.__master,
@@ -199,23 +199,23 @@ Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
                                                              title="Select the feature repository")
         if self.__repository_location is not None and self.__repository_location:
             self.__repository_label["text"] = self.__repository_location
-            self.__respository_status["image"] = self.__picture_valid
+            self.__repository_status["image"] = self.__picture_valid
         else:
             self.__repository_label["text"] = "Please select a feature file repository."
-            self.__respository_status["image"] = self.__picture_warning
+            self.__repository_status["image"] = self.__picture_warning
 
     def __select_execution(self):
-        self.__excution_location = filedialog.askopenfilename(parent=self.__master,
-                                                              title="Select the test plain report",
-                                                              filetypes=[("text files", "*.txt")])
-        if self.__excution_location is not None and self.__excution_location:
+        self.__execution_location = filedialog.askopenfilename(parent=self.__master,
+                                                               title="Select the test plain report",
+                                                               filetypes=[("text files", "*.txt")])
+        if self.__execution_location is not None and self.__execution_location:
             self.__execution_result_status["text"] = "Execution selected"
         else:
             self.__execution_result_status["text"] = ""
 
     def __reset_execution(self):
         self.__execution_result_status["text"] = ""
-        self.__excution_location = None
+        self.__execution_location = None
 
     def run(self):
         self.__master.mainloop()
@@ -454,7 +454,8 @@ class ExportUtilities:
                     log.info(f"Processing scenario {scenario.name}")
                     self.print_scenario_title(scenario_keyword=scenario.keyword,
                                               scenario_name=scenario.name)
-                    paragraph = self.document.add_paragraph("Scenario tags are ", style='No spacing')
+                    paragraph = self.document.add_paragraph("Scenario tags are ",
+                                                            style='No spacing')
                     if feature.tags:
                         paragraph.add_run({str(feature.tags).strip('[]')})
                     if scenario.tags:
@@ -544,6 +545,29 @@ class ExportUtilities:
         """
         self.document.add_heading("Last Execution report", 1)
         reporter = {}
+        self.__parse_report(file, reporter)
+
+        self.document.add_page_break()
+        self.document.add_heading("Last Execution summary", 1)
+        table_instance = self.document.add_table(rows=1, cols=3, style='Light List Accent 3')
+        header_cells = table_instance.rows[0].cells
+        header_cells[0].text = "Feature"
+        header_cells[1].text = "Scenario"
+        header_cells[2].text = "Status"
+        log.debug(reporter)
+        feature_keys = list(reporter.keys())
+        feature_keys.sort()
+        for feature_key in feature_keys:
+            scenario_keys = list(reporter[feature_key].keys())
+            scenario_keys.sort()
+            log.debug(scenario_keys)
+            for scenario_key in scenario_keys:
+                row_cells = table_instance.add_row().cells
+                row_cells[0].text = feature_key
+                row_cells[1].text = scenario_key
+                row_cells[2].text = reporter[feature_key][scenario_key]
+
+    def __parse_report(self, file: str = None, reporter: dict = None):
         current_feature = None
         current_scenario = None
         last_status = "skipped"
@@ -577,7 +601,7 @@ class ExportUtilities:
                         test_count += 1
                         last_status = "skipped"
                     current_scenario = line.split(":")[1].lstrip(' ').rstrip()
-                    print(current_scenario)
+                    log.debug(current_scenario)
                     self.document.add_heading(line.rstrip(), 3)
                 elif re.match(".*passed.*", line):
                     last_status = "passed"
@@ -588,33 +612,12 @@ class ExportUtilities:
                 else:
                     self.document.add_paragraph(line.rstrip(), style='No Spacing')
 
-        self.document.add_page_break()
-        self.document.add_heading("Last Execution summary", 1)
-        table_instance = self.document.add_table(rows=1, cols=3, style='Light List Accent 3')
-        header_cells = table_instance.rows[0].cells
-        header_cells[0].text = "Feature"
-        header_cells[1].text = "Scenario"
-        header_cells[2].text = "Status"
-        print(reporter)
-        feature_keys = list(reporter.keys())
-        feature_keys.sort()
-        for feature_key in feature_keys:
-            scenario_keys = list(reporter[feature_key].keys())
-            scenario_keys.sort()
-            print(scenario_keys)
-            for scenario_key in scenario_keys:
-                row_cells = table_instance.add_row().cells
-                row_cells[0].text = feature_key
-                row_cells[1].text = scenario_key
-                row_cells[2].text = reporter[feature_key][scenario_key]
-
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s -- %(filename)s.%(funcName)s-- %(levelname)s -- %(message)s")
     handler = RotatingFileHandler(f"{tempfile.gettempdir()}/test_log.log",
-                                  mode="a",
                                   encoding="utf-8",
                                   maxBytes=1000000,
                                   backupCount=2)
