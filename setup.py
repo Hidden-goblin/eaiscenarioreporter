@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# -*- Product under GNU GPL v3 -*-
+# -*- Author: E.Aivayan -*-
 from setuptools import setup, find_packages
 
 with open("README.md", "r") as file:
@@ -6,7 +8,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="eaiscenarioreporter",
-    version="0.0.15",
+    version="0.0.16",
     description="Turns folder of gherkin feature files into a docx file.",
     long_description=long_description,
     long_description_content_type="text/markdown",
