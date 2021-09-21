@@ -12,6 +12,7 @@ behave = "*"
 python-docx = "*"
 Pillow = "*"
 radon = "*"
+pyinstaller = "==4.5.1"
 
 [requires]
 python_version = "3.8"

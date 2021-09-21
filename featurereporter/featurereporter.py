@@ -455,11 +455,12 @@ class ExportUtilities:
                     self.print_scenario_title(scenario_keyword=scenario.keyword,
                                               scenario_name=scenario.name)
                     paragraph = self.document.add_paragraph("Scenario tags are ",
-                                                            style='No spacing')
+                                                            style='No Spacing')
                     if feature.tags:
-                        paragraph.add_run({str(feature.tags).strip('[]')})
+                        paragraph.add_run(", ".join({f"'{tag}'" for tag in feature.tags}))
                     if scenario.tags:
-                        paragraph.add_run({str(scenario.tags).strip('[]')})
+                        paragraph.add_run(", ")
+                        paragraph.add_run(", ".join({f"'{tag}'" for tag in scenario.tags}))
                     self.print_steps(steps=scenario.steps)
                     if scenario.type == 'scenario_outline':
                         self.print_examples(examples=scenario.examples)
