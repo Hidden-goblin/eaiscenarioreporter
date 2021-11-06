@@ -12,6 +12,7 @@ behave = "*"
 python-docx = "*"
 Pillow = "*"
 radon = "*"
+matplotlib = "*"
 pyinstaller = "==4.5.1"
 
 [requires]
