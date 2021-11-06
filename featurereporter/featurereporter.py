@@ -11,13 +11,15 @@ import sys
 import tempfile
 import tkinter as tk
 import platform
+import PIL
+import matplotlib.pyplot as plt
 
 
 from shutil import copyfile
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Tuple
 
-import PIL
 from docx.shared import Cm
 from PIL import ImageTk, Image
 from behave.parser import parse_file
@@ -546,10 +548,25 @@ class ExportUtilities:
         """
         self.document.add_heading("Last Execution report", 1)
         reporter = {}
-        self.__parse_report(file, reporter)
+        total, succeed, failed = self.__parse_report(file, reporter)
 
         self.document.add_page_break()
         self.document.add_heading("Last Execution summary", 1)
+
+        labels = ["succeed", "failed", "skipped"]
+        part_succeed = int(100 * succeed / total)
+        part_failed = int(100 * failed / total)
+        sizes = [part_succeed, part_failed, 100 - part_succeed - part_failed]
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True)
+        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+        tmp_pic_folder = Path(f"{tempfile.gettempdir()}/result.png")
+        plt.savefig(str(tmp_pic_folder.absolute()))
+        plt.close(fig1)
+
+        self.document.add_picture(str(tmp_pic_folder.absolute()))
+
         table_instance = self.document.add_table(rows=1, cols=3, style='Light List Accent 3')
         header_cells = table_instance.rows[0].cells
         header_cells[0].text = "Feature"
@@ -561,14 +578,17 @@ class ExportUtilities:
         for feature_key in feature_keys:
             scenario_keys = list(reporter[feature_key].keys())
             scenario_keys.sort()
-            log.debug(scenario_keys)
+            log.debug(f"Create table summary {scenario_keys}")
             for scenario_key in scenario_keys:
                 row_cells = table_instance.add_row().cells
                 row_cells[0].text = feature_key
+                if scenario_key is None:
+                    row_cells[2].text = "No scenario to report"
+                    continue
                 row_cells[1].text = scenario_key
                 row_cells[2].text = reporter[feature_key][scenario_key]
 
-    def __parse_report(self, file: str = None, reporter: dict = None):
+    def __parse_report(self, file: str = None, reporter: dict = None) -> Tuple[int, int, int]:
         current_feature = None
         current_scenario = None
         last_status = "skipped"
@@ -590,7 +610,6 @@ class ExportUtilities:
                     current_feature = line.split(":")[1].lstrip(' ').rstrip()
                     reporter[current_feature] = {}
                     current_scenario = None  # No scenario for the current feature
-                    print(reporter)
                     self.document.add_heading(line.rstrip(), 2)
                 elif re.match(r"\s*Scenario.*", line):
                     if current_scenario is not None:
@@ -612,7 +631,7 @@ class ExportUtilities:
                     self.document.add_paragraph(line.rstrip(), style='No Spacing')
                 else:
                     self.document.add_paragraph(line.rstrip(), style='No Spacing')
-
+        return test_count, succeed_count, failed_count
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
