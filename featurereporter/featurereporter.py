@@ -236,6 +236,7 @@ class ExportUtilities:
         self.__jre_present = bool(version)
         self.__jar_path = f"{os.path.dirname(os.path.realpath(__file__))}/assets/plantuml.jar"
         self.__current_feature_tags = None
+        self.__include_result = False
 
     @property
     def feature_repository(self):
@@ -275,6 +276,17 @@ class ExportUtilities:
     def document(self):
         return self.__document
 
+    def _get_level(self, level_name: str) -> int:
+        level = {"h1": 1,
+                 "h2": 2,
+                 "h3": 3,
+                 "h4": 4,
+                 "h5": 5}
+        if self.__include_result:
+            return level[level_name] + 1
+        else:
+            return level[level_name]
+
     def create_application_documentation(self, report_file=None, output_file_name="demo.docx"):
         """
         Create a document (docx) object and read first all ".feature" files and
@@ -290,6 +302,7 @@ class ExportUtilities:
         :return: None
         """
         log.info("Start application documentation")
+
         # Check which drive is it if window
         self.__document = Document()
         self.document.add_heading("{}".format(self.__report_title), 0)  # Document title
@@ -307,6 +320,10 @@ class ExportUtilities:
             please_copy = False
 
         log.info(f"We are on {platform.system()} and we need to copy is set to {please_copy}")
+
+        if report_file is not None:
+            self.__include_result = True
+            self.document.add_heading("Living documentation", 1)
 
         for file in glob.iglob("{}/**/*.feature".format(self.__feature_repository),
                                recursive=True):  # Use the iterator as it's cleaner
@@ -331,10 +348,13 @@ class ExportUtilities:
                     os.remove(temp_file)
             except Exception as exception:
                 log.error(exception)
+
         if report_file is not None:
             self.add_report(file=report_file)
-
-        self.document.save(output_file_name)
+        if not output_file_name.endswith(".docx"):
+            self.document.save(f"{output_file_name}.docx")
+        else:
+            self.document.save(output_file_name)
         log.info("Processing done.")
 
     def add_heading(self, feature=None):
@@ -345,7 +365,7 @@ class ExportUtilities:
         """
         try:
             log.info(f"Processing {feature.name}")
-            self.document.add_heading(feature.name, 1)
+            self.document.add_heading(feature.name, self._get_level("h1"))
             paragraph = self.document.add_paragraph("")
             if self.us_tag is not None:
                 matcher = [elem for elem in feature.tags if self.us_tag in elem]
@@ -455,7 +475,8 @@ class ExportUtilities:
                 for scenario in feature.scenarios:
                     log.info(f"Processing scenario {scenario.name}")
                     self.print_scenario_title(scenario_keyword=scenario.keyword,
-                                              scenario_name=scenario.name)
+                                              scenario_name=scenario.name,
+                                              level= self._get_level("h2"))
                     paragraph = self.document.add_paragraph("Scenario tags are ",
                                                             style='No Spacing')
                     if feature.tags:
@@ -480,13 +501,17 @@ class ExportUtilities:
             for example in examples:
                 log.info(f"Processing example '{example.name}'")
                 self.print_scenario_title(scenario_keyword=example.keyword,
-                                          scenario_name=example.name, level=3)
+                                          scenario_name=example.name,
+                                          level=self._get_level("h3"))
                 self.print_table(table=example.table)
         except Exception as exception:
             log.error(exception)
             raise Exception(exception)
 
-    def print_scenario_title(self, scenario_keyword=None, scenario_name=None, level=2):
+    def print_scenario_title(self,
+                             scenario_keyword=None,
+                             scenario_name=None,
+                             level=2):
         """
         Print a section title in the document in the format keyword : name with a level 2
         :param scenario_keyword: the keyword such as Scenario or Scenario Outline or Example
@@ -558,7 +583,11 @@ class ExportUtilities:
         part_failed = int(100 * failed / total)
         sizes = [part_succeed, part_failed, 100 - part_succeed - part_failed]
         fig1, ax1 = plt.subplots()
-        ax1.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True)
+        ax1.pie(sizes,
+                labels=labels,
+                colors=['tab:green', 'tab:red', 'tab:gray'],
+                autopct='%1.1f%%',
+                shadow=True)
         ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 
         tmp_pic_folder = Path(f"{tempfile.gettempdir()}/result.png")
