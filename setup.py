@@ -8,7 +8,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="eaiscenarioreporter",
-    version="0.0.18",
+    version="0.0.19",
     description="Turns folder of gherkin feature files into a docx file.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -37,7 +37,8 @@ setup(
     install_requires=[
         'behave',
         'python-docx',
-        'Pillow'
+        'Pillow',
+        "matplotlib"
     ],
     keywords=["BDD", "Gherkin", "behave", "docx"],
     python_requires='>=3.7, !=2.*',
