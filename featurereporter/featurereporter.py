@@ -366,11 +366,20 @@ class ExportUtilities:
         try:
             log.info(f"Processing {feature.name}")
             self.document.add_heading(feature.name, self._get_level("h1"))
+            # TODO work on condition so that no orphan empty paragraph
             paragraph = self.document.add_paragraph("")
+            tagged = False
             if self.us_tag is not None:
                 matcher = [elem for elem in feature.tags if self.us_tag in elem]
-                paragraph.add_run("Related to the user story: {}".format(str(matcher).strip('[]')))
+                if matcher:
+                    run = paragraph.add_run()
+                    run.underline = True
+                    run.text = "Related to the user story: "
+                    paragraph.add_run("{}".format(str(matcher).strip('[]')))
+                    tagged = True
             if feature.tags:
+                if tagged:
+                    paragraph = self.document.add_paragraph("")
                 paragraph.add_run(f"Feature tags are {str(feature.tags).strip('[]')}")
         except Exception as exception:
             log.error(exception)
@@ -381,18 +390,24 @@ class ExportUtilities:
             # Assuming that the diagram path is relative to feature folder repository
             path = Path(f"{self.__feature_repository}/{diagram_path}")
             resolved = path.resolve()
-
-            # Generate the temporary picture
-            try:
-                tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
-                subprocess.run(
-                    ["java", "-jar", Path(self.__jar_path).absolute(), resolved,
-                     "-o", tmp_pic_folder])
-                gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
-            except FileNotFoundError as file_not_found:
-                # Don't break the flow
-                log.warning(file_not_found.args[0])
-                return
+            # Check if existing png files exists
+            if (Path(f"{resolved.name.split('.')[0]}.png").exists()
+                    and Path(f"{resolved.name.split('.')[0]}.png").is_file()):
+                gen_pic_path = Path(f"{resolved.name.split('.')[0]}.png")
+            else:
+                # Generate the temporary picture
+                try:
+                    tmp_pic_folder = Path(f"{tempfile.gettempdir()}")
+                    subprocess.run(
+                        ["java", "-Djava.awt.headless=true",
+                         "-jar", Path(self.__jar_path).absolute(),
+                         resolved,
+                         "-o", tmp_pic_folder])
+                    gen_pic_path = Path(f'{tmp_pic_folder}/{resolved.name.split(".")[0]}.png')
+                except FileNotFoundError as file_not_found:
+                    # Don't break the flow
+                    log.warning(file_not_found.args[0])
+                    return
 
             # Resize the picture if too big and to document
             image = PIL.Image.open(gen_pic_path)
