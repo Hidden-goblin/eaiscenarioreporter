@@ -3,6 +3,6 @@
 # -*- Author: E.Aivayan -*-
 
 from .featurereporter import main
-from .featurereporter import ExportUtilities
+from .reportgenerator import ExportUtilities
 
 __all__ = [main, ExportUtilities]

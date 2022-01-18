@@ -8,7 +8,7 @@ with open("README.md", "r") as file:
 
 setup(
     name="eaiscenarioreporter",
-    version="0.0.20",
+    version="0.1.00",
     description="Turns folder of gherkin feature files into a docx file.",
     long_description=long_description,
     long_description_content_type="text/markdown",
