@@ -13,7 +13,7 @@ from logging.handlers import RotatingFileHandler
 from PIL import ImageTk, Image
 from tkinter import filedialog, Toplevel, messagebox
 
-from featurereporter import ExportUtilities
+from .reportgenerator import ExportUtilities
 
 log = logging.getLogger(__name__)
 
