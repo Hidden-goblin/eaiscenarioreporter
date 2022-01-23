@@ -6,18 +6,22 @@ import argparse
 import os
 import sys
 import tempfile
-import tkinter as tk
+try:
+    import tkinter as tk
+    from PIL import ImageTk, Image
+    from tkinter import filedialog, Toplevel, messagebox
+    GUI_ENABLED = True
+except ImportError:
+    GUI_ENABLED = False
 
 from logging.handlers import RotatingFileHandler
 
-from PIL import ImageTk, Image
-from tkinter import filedialog, Toplevel, messagebox
 
-from featurereporter import ExportUtilities
+from .reportgenerator import ExportUtilities
 
 log = logging.getLogger(__name__)
 
-LICENCE = """ ExportUtilities  Copyright (C) 2021  E.Aivayan
+LICENCE = """ ExportUtilities  Copyright (C) 2022  E.Aivayan
     This program comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain conditions.
 
@@ -231,7 +235,7 @@ def main():
     parser.add_argument("--tag", help="Invariant pointing to a user story")
     parser.add_argument("--title", help="The document's title")
     parser.add_argument("--repository", help="The folder where the feature files are")
-    parser.add_argument("--output", help="")
+    parser.add_argument("--output", help="The filename the docu")
     parser.add_argument("--execution",
                         help="Behave plain test output in order to "
                              "also print the last execution result")
@@ -248,8 +252,16 @@ def main():
         )
         and not args.license
     ):
-        app = Application()
-        app.run()
+        if GUI_ENABLED:
+            app = Application()
+            app.run()
+        else:
+            print(f"""{LICENCE}
+    Run with --license option to display the full licence
+    
+    --> tkinter cannot be imported. GUI cannot be launched.
+    Please use the full command line to generate report.""")
+
     else:
         print(args.license)
         if args.license is not None and args.license:

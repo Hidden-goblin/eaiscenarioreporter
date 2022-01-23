@@ -6,17 +6,19 @@ import platform
 import re
 import subprocess
 import tempfile
+import logging
+import PIL
+
 from pathlib import Path
 from shutil import copyfile
 from typing import Tuple
-
-import PIL
 from behave.parser import parse_file
 from docx import Document
 from docx.shared import Cm
 from matplotlib import pyplot as plt
 
-from featurereporter.featurereporter import log
+
+log = logging.getLogger(__name__)
 
 
 class ExportUtilities:
@@ -78,10 +80,7 @@ class ExportUtilities:
                  "h3": 3,
                  "h4": 4,
                  "h5": 5}
-        if self.__include_result:
-            return level[level_name] + 1
-        else:
-            return level[level_name]
+        return level[level_name] + 1 if self.__include_result else level[level_name]
 
     def create_application_documentation(self, report_file=None, output_file_name="demo.docx"):
         """
