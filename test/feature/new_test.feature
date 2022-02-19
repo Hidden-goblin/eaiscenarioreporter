@@ -7,6 +7,10 @@ Feature: New Test feature
 
   !!Workflow: ../workflows/test1.puml
 
+  | A tabular | to test |
+  | --------- | ------- |
+  | one| two|
+
   @event
   Scenario:
     Given I write a workflow reference
