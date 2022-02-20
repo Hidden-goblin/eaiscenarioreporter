@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 # -*- Product under GNU GPL v3 -*-
 # -*- Author: E.Aivayan -*-
-import logging
 import argparse
+import logging
 import os
 import sys
 import tempfile
+
 try:
     import tkinter as tk
     from PIL import ImageTk, Image
     from tkinter import filedialog, Toplevel, messagebox
+
     GUI_ENABLED = True
 except ImportError:
     GUI_ENABLED = False
 
 from logging.handlers import RotatingFileHandler
-
 
 from .reportgenerator import ExportUtilities
 
@@ -34,7 +35,7 @@ class Application:
     def __init__(self):
         self.__assets = os.path.dirname(os.path.realpath(__file__))
         self.__master = tk.Tk()
-        self.__master.geometry("500x200")
+        self.__master.geometry("520x250")
         # Feature repository vars
         self.__repository_label = None
         self.__repository_select_button = None
@@ -55,6 +56,12 @@ class Application:
         self.__execution_result_button = None
         self.__execution_result_reset = None
         self.__execution_location = None
+        # Forewords vars
+        self.__forewords_label = None
+        self.__forewords_status = None
+        self.__forewords_select_button = None
+        self.__forewords_reset = None
+        self.__forewords_location = None
         # Other UI thing
         self.__quit = None
         self.__readme_button = None
@@ -105,6 +112,14 @@ class Application:
         self.__execution_result_reset = tk.Button(self.__master, text="Reset location",
                                                   command=self.__reset_execution)
         self.__execution_result_status = tk.Label(self.__master, text="")
+        # Forewords location
+        self.__forewords_label = tk.Label(self.__master,
+                                          text="Forewords folder")
+        self.__forewords_status = tk.Label(self.__master, text="")
+        self.__forewords_select_button = tk.Button(self.__master, text="Select forewords folder",
+                                                   command=self.__select_forewords)
+        self.__forewords_reset = tk.Button(self.__master, text="Reset location",
+                                           command=self.__reset_forewords)
         # Readme
         self.__readme_button = tk.Button(self.__master, text="README",
                                          command=self.__display_readme)
@@ -128,13 +143,17 @@ class Application:
         self.__document_filename_input.grid(row=3, column=1)
         self.__us_tag_label.grid(row=4, column=0)
         self.__us_tag_input.grid(row=4, column=1)
-        self.__execution_result_label.grid(row=5, column=0)
-        self.__execution_result_status.grid(row=5, column=1)
-        self.__execution_result_button.grid(row=5, column=3)
-        self.__execution_result_reset.grid(row=5, column=4)
-        self.__readme_button.grid(row=6, column=0)
-        self.__execute_button.grid(row=6, column=3)
-        self.__quit.grid(row=7, column=0, columnspan=5, sticky="E,W")
+        self.__forewords_label.grid(row=5, column=0)
+        self.__forewords_status.grid(row=5, column=1)
+        self.__forewords_select_button.grid(row=5, column=3)
+        self.__forewords_reset.grid(row=5, column=4)
+        self.__execution_result_label.grid(row=6, column=0)
+        self.__execution_result_status.grid(row=6, column=1)
+        self.__execution_result_button.grid(row=6, column=3)
+        self.__execution_result_reset.grid(row=6, column=4)
+        self.__readme_button.grid(row=7, column=0)
+        self.__execute_button.grid(row=7, column=3)
+        self.__quit.grid(row=8, column=0, columnspan=5, sticky="E,W")
 
     @staticmethod
     def __display_readme():
@@ -154,12 +173,14 @@ class Application:
                 self.__reporter.report_title = self.__document_name_input.get()
             if self.__us_tag_input.get():
                 self.__reporter.us_tag = self.__us_tag_input.get()
+            if self.__forewords_location is not None and self.__forewords_location:
+                self.__reporter.forewords_folder = self.__forewords_location
             param = {}
             if self.__document_filename_input.get():
                 param["output_file_name"] = self.__document_filename_input.get()
             if self.__execution_location is not None and self.__execution_location:
                 param["report_file"] = self.__execution_location
-            print(param)
+            log.debug(param)
             self.__reporter.create_application_documentation(**param)
         else:
             log.error("Cannot create de report without a feature files repository.")
@@ -199,6 +220,19 @@ Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
             self.__repository_label["text"] = "Please select a feature file repository."
             self.__repository_status["image"] = self.__picture_warning
 
+    def __select_forewords(self):
+        self.__forewords_location = filedialog.askdirectory(parent=self.__master,
+                                                            mustexist=True,
+                                                            title="Select the forewords folder")
+        if self.__forewords_location is not None and self.__forewords_location:
+            self.__forewords_status["text"] = "Forewords selected"
+        else:
+            self.__forewords_status["text"] = ""
+
+    def __reset_forewords(self):
+        self.__forewords_location = None
+        self.__forewords_status["text"] = ""
+
     def __select_execution(self):
         self.__execution_location = filedialog.askopenfilename(parent=self.__master,
                                                                title="Select the test plain report",
@@ -217,24 +251,27 @@ Icon by Raj Dev (https://freeicons.io/profile/714) on https://freeicons.io""")
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.WARNING)
     formatter = logging.Formatter(
         "%(asctime)s -- %(filename)s.%(funcName)s-- %(levelname)s -- %(message)s")
-    handler = RotatingFileHandler(f"{tempfile.gettempdir()}/test_log.log",
+    handler = RotatingFileHandler(f"{tempfile.gettempdir()}/reporter_log.log",
                                   encoding="utf-8",
                                   maxBytes=1000000,
                                   backupCount=2)
     handler.setFormatter(formatter)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.WARNING)
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.WARNING)
     logger.addHandler(handler)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", help="Invariant pointing to a user story")
     parser.add_argument("--title", help="The document's title")
     parser.add_argument("--repository", help="The folder where the feature files are")
+    parser.add_argument("--forewords",
+                        help=("The folder where forewords markdown files are."
+                              " It is not a recursive discovery."))
     parser.add_argument("--output", help="The filename the docu")
     parser.add_argument("--execution",
                         help="Behave plain test output in order to "
@@ -245,12 +282,12 @@ def main():
 
     args = parser.parse_args()
     if (
-        all(
-            value is None
-            for item, value in vars(args).items()
-            if item != "license"
-        )
-        and not args.license
+            all(
+                value is None
+                for item, value in vars(args).items()
+                if item != "license"
+            )
+            and not args.license
     ):
         if GUI_ENABLED:
             app = Application()
@@ -278,6 +315,8 @@ def main():
             report.report_title = args.title
         if args.tag is not None and args.tag:
             report.us_tag = args.tag
+        if args.forewords is not None and args.forewords:
+            report.forewords_folder = args.forewords
         parameters = {}
         if args.execution is not None and args.execution:
             parameters["report_file"] = args.execution

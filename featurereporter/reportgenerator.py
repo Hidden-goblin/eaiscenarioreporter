@@ -13,11 +13,10 @@ from typing import Tuple, Union
 
 from behave.parser import parse_file
 from docx import Document
-# from docx.shared import Cm
+from htmldocx import HtmlToDocx
+from markdown_it import MarkdownIt
 from matplotlib import pyplot as plt
 from PIL import Image
-
-from featurereporter.add_md import insert_text
 
 log = logging.getLogger(__name__)
 
@@ -583,3 +582,10 @@ class ExportUtilities:
                 else:
                     self.document.add_paragraph(line.rstrip(), style='No Spacing')
         return test_count, succeed_count, failed_count
+
+
+def insert_text(document, text):
+    my_parser = HtmlToDocx()
+    md = MarkdownIt()
+    md.enable('table')
+    my_parser.add_html_to_document(md.render(text), document)
