@@ -1,22 +1,22 @@
 # -*- Product under GNU GPL v3 -*-
 # -*- Author: E.Aivayan -*-
 import glob
+import logging
 import os
 import platform
 import re
 import subprocess
 import tempfile
-import logging
-import PIL
-
 from pathlib import Path
 from shutil import copyfile
-from typing import Tuple
+from typing import Tuple, Union
+
 from behave.parser import parse_file
 from docx import Document
-from docx.shared import Cm
+from htmldocx import HtmlToDocx
+from markdown_it import MarkdownIt
 from matplotlib import pyplot as plt
-
+from PIL import Image
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +35,8 @@ class ExportUtilities:
         self.__jar_path = f"{os.path.dirname(os.path.realpath(__file__))}/assets/plantuml.jar"
         self.__current_feature_tags = None
         self.__include_result = False
+        self.__forewords_folder = None
+        self.__inline_counter = 0
 
     @property
     def feature_repository(self):
@@ -71,16 +73,63 @@ class ExportUtilities:
             self.__user_story_tag_prefix = None
 
     @property
+    def forewords_folder(self) -> Union[str, Path, None]:
+        return self.__forewords_folder
+
+    @forewords_folder.setter
+    def forewords_folder(self, folder: str):
+        if Path(folder).exists() and Path(folder).is_dir():
+            self.__forewords_folder = folder
+            self.__include_result = True
+        else:
+            raise FileExistsError(f"{folder} is not a existing folder")
+
+    @property
     def document(self):
         return self.__document
 
     def _get_level(self, level_name: str) -> int:
+        """Return the effective level depending on the inclusion (asis or +1)"""
         level = {"h1": 1,
                  "h2": 2,
                  "h3": 3,
                  "h4": 4,
                  "h5": 5}
         return level[level_name] + 1 if self.__include_result else level[level_name]
+
+    def __forewords_schema_replacement(self, match_obj):
+        """Replace schema tags with the generated schema picture"""
+        generated_path = self.__generate_diagrams(match_obj.group(1), False)
+        generated_path = re.sub(r'\\', '/', generated_path)
+        return f"\n![Schema]({generated_path})\n"
+
+    def __forewords_inline_puml(self, match_obj):
+        """Generate inline puml and insert"""
+        current = self.__inline_counter
+        temp_puml = Path(f"{tempfile.gettempdir()}/inline_p_{current}.puml")
+        temp_puml = temp_puml.resolve()
+        with open(temp_puml, "w") as file:
+            file.write(match_obj.group(1))
+        subprocess.run(
+            ["java", "-Djava.awt.headless=true",
+             "-jar", Path(self.__jar_path).absolute(),
+             temp_puml,
+             "-o", Path(f"{tempfile.gettempdir()}")])
+        gen_pic_path = Path(f'{tempfile.gettempdir()}/{temp_puml.name.split(".")[0]}.png')
+        self.__resize_schema(gen_pic_path)
+        generated_path = re.sub(r'\\',
+                                '/',
+                                str(gen_pic_path.absolute()))
+        self.__inline_counter += 1
+        return f"\n![Diag {current}]({generated_path})\n"
+
+    def __forewords_picture(self, match_obj):
+        generated_path = re.sub(
+            r'\\',
+            '/',
+            str(Path(f"{self.forewords_folder}/{match_obj.group(2)}").absolute()))
+        self.__resize_schema(Path(generated_path))
+        return f"\n![{match_obj.group(1)}]({generated_path})\n"
 
     def create_application_documentation(self, report_file=None, output_file_name="demo.docx"):
         """
@@ -116,7 +165,33 @@ class ExportUtilities:
 
         log.info(f"We are on {platform.system()} and we need to copy is set to {please_copy}")
 
-        if report_file is not None:
+        # Insert forewords sections
+        if self.forewords_folder is not None:
+            self.document.add_heading("Forewords", 1)
+            list_of_files = sorted(filter(os.path.isfile,
+                                          glob.glob(f"{self.forewords_folder}/*.md")))
+            for file in list_of_files:
+                with open(file) as foreword_section:
+                    content = foreword_section.read()
+                    # Shift title level +1
+                    content = re.sub(r'^(#*)', r'#\1', content)
+                    # Process included picture with relative path
+                    content = re.sub(r'!\[([^\[\]]+)\]\(([^\s]+)\)',
+                                     self.__forewords_picture,
+                                     content)
+                    # Process inline puml diagrams
+                    content = re.sub(r'```puml[\r|\n]{1,2}([^`]*)```',
+                                     self.__forewords_inline_puml,
+                                     content,
+                                     flags=re.MULTILINE)
+                    # Process diagrams
+                    content = re.sub(r'!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*',
+                                     self.__forewords_schema_replacement,
+                                     content)
+                    insert_text(self.document, content)
+            self.document.add_page_break()
+
+        if report_file is not None or self.__include_result:
             self.__include_result = True
             self.document.add_heading("Living documentation", 1)
 
@@ -154,7 +229,7 @@ class ExportUtilities:
 
     def add_heading(self, feature=None):
         """
-        Add a the feature name as top level section
+        Add the feature name as top level section
         :param feature: the feature object
         :return:
         """
@@ -178,12 +253,15 @@ class ExportUtilities:
                 paragraph.add_run(f"Feature tags are {str(feature.tags).strip('[]')}")
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
 
-    def __generate_diagrams(self, diagram_path):
+    def __generate_diagrams(self, diagram_path,
+                            is_feature_diagram: bool = True) -> Union[str, None]:
+        """Generate the diagram using plantuml. Return the picture absolute path"""
         try:
+            base_path = self.feature_repository if is_feature_diagram else self.forewords_folder
             # Assuming that the diagram path is relative to feature folder repository
-            path = Path(f"{self.__feature_repository}/{diagram_path}")
+            path = Path(f"{base_path}/{diagram_path}")
             resolved = path.resolve()
             # Check if existing png files exists
             if (Path(f"{resolved.name.split('.')[0]}.png").exists()
@@ -204,33 +282,55 @@ class ExportUtilities:
                     log.warning(file_not_found.args[0])
                     return
 
-            # Resize the picture if too big and to document
-            image = PIL.Image.open(gen_pic_path)
-            width, height = image.size
-            # Preserve image ratio
-            ratio = width / height
-            if width > 580 and height < 841:
-                self.document.add_picture(str(gen_pic_path.absolute()),
-                                          width=Cm(15),
-                                          height=Cm(15 / ratio))
-            elif width < 580 and height > 841:
-                self.document.add_picture(str(gen_pic_path.absolute()),
-                                          width=Cm(20 * ratio),
-                                          height=Cm(20))
-            elif width > 580 and height > 841:
-                reduce_factor = max(width / 580, height / 841)
-                new_width = (width * 15) / (580 * reduce_factor)  # Double proportionality on ratio
-                # and pixel against cm
-                new_height = (height * 20) / (841 * reduce_factor)
-                self.document.add_picture(str(gen_pic_path.absolute()),
-                                          width=Cm(new_width),
-                                          height=Cm(new_height))
-            else:
-                self.document.add_picture(str(gen_pic_path.absolute()))
-
+            self.__resize_schema(gen_pic_path)
+            return str(gen_pic_path.absolute())
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
+
+    @staticmethod
+    def __resize_schema(schema_picture_path: Path):
+        # Resize the picture if too big
+        image: Image = Image.open(schema_picture_path)
+        width, height = image.size
+        # Preserve image ratio
+        ratio = width / height
+        # TODO resize image using PIL and save to gen_pic_path
+        if width > 580 and height < 841:
+            new_width = 580
+            new_height = 580 / ratio
+            # image.resize()
+            # self.document.add_picture(str(gen_pic_path.absolute()),
+            #                           width=Cm(15),
+            #                           height=Cm(15 / ratio))
+        elif width < 580 and height > 841:
+            new_height = 841
+            new_width = int(841 * ratio)
+            # self.document.add_picture(str(gen_pic_path.absolute()),
+            #                           width=Cm(20 * ratio),
+            #                           height=Cm(20))
+        elif width > 580 and height > 841:
+            reduce_factor = max(width / 580, height / 841)
+            new_width = int(
+                (width * 580) / (580 * reduce_factor))  # Double proportionality on ratio
+            # and pixel against cm
+            new_height = int((height * 841) / (841 * reduce_factor))
+            # self.document.add_picture(str(gen_pic_path.absolute()),
+            #                           width=Cm(new_width),
+            #                           height=Cm(new_height))
+        else:
+            new_width = width
+            new_height = height
+            # self.document.add_picture(str(gen_pic_path.absolute()))
+        # TODO return path so that it can be included in generator
+        new_image = image.resize((new_width, new_height))
+        new_image.save(str(schema_picture_path.absolute()), format="png")
+
+    def __schema_replacement(self, match_obj):
+        generated_path = self.__generate_diagrams(match_obj.group(1))
+        generated_path = re.sub(r'\\', '/', generated_path)
+        return (f"\n![Schema]({generated_path})\n"
+                f"!!Workflow: {match_obj.group(1)}\n")
 
     def add_description(self, feature=None):
         """
@@ -242,22 +342,35 @@ class ExportUtilities:
         :return: None
         """
         try:
-            for line in feature.description:
-                if re.match(r'\*.*', line):
-                    self.document.add_paragraph(line[1:], style='List Bullet')
-                elif re.match('[Bb]usiness [Rr]ules.*', line):
-                    paragraph = self.document.add_paragraph("")
-                    paragraph.add_run(line).bold = True
-                elif re.match(r'!!Workflow:.*', line) and self.__jre_present:
-                    match = re.match(r'^!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*$', line)
-                    if match:
-                        self.__generate_diagrams(match.group(1))
-                    self.document.add_paragraph(line)
-                else:
-                    self.document.add_paragraph(line)
+            # TODO consider feature.description as markdown.
+            # TODO make relevant transformation for Business Rules, workflow and user story
+            description = "\n".join(feature.description)
+            # replace business rules with title h2
+            description = re.sub(r'[Bb]usiness [Rr]ules.*',
+                                 f"{'#' * self._get_level('h2')} Business Rules",
+                                 description)
+            # replace !!Workflow: tag with the generated picture inclusion
+            description = re.sub(r'!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*',
+                                 self.__schema_replacement,
+                                 description)
+            # include md description in the document
+            insert_text(self.document, description)
+            # for line in feature.description:
+            #     if re.match(r'\*.*', line):
+            #         self.document.add_paragraph(line[1:], style='List Bullet')
+            #     elif re.match('[Bb]usiness [Rr]ules.*', line):
+            #         paragraph = self.document.add_paragraph("")
+            #         paragraph.add_run(line).bold = True
+            #     elif re.match(r'!!Workflow:.*', line) and self.__jre_present:
+            #         match = re.match(r'^!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*$', line)
+            #         if match:
+            #             self.document.add_picture(self.__generate_diagrams(match.group(1)))
+            #         self.document.add_paragraph(line)
+            #     else:
+            #         self.document.add_paragraph(line)
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
 
     def add_background(self, feature=None):
         """
@@ -272,7 +385,7 @@ class ExportUtilities:
                 self.print_steps(steps=feature.background.steps)
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
 
     def add_scenario(self, feature=None):
         """
@@ -286,7 +399,7 @@ class ExportUtilities:
                     log.info(f"Processing scenario {scenario.name}")
                     self.print_scenario_title(scenario_keyword=scenario.keyword,
                                               scenario_name=scenario.name,
-                                              level= self._get_level("h2"))
+                                              level=self._get_level("h2"))
                     paragraph = self.document.add_paragraph("Scenario tags are ",
                                                             style='No Spacing')
                     if feature.tags:
@@ -299,7 +412,7 @@ class ExportUtilities:
                         self.print_examples(examples=scenario.examples)
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
 
     def print_examples(self, examples=None):
         """
@@ -316,7 +429,7 @@ class ExportUtilities:
                 self.print_table(table=example.table)
         except Exception as exception:
             log.error(exception)
-            raise Exception(exception)
+            raise Exception(exception) from exception
 
     def print_scenario_title(self,
                              scenario_keyword=None,
@@ -412,11 +525,9 @@ class ExportUtilities:
         header_cells[1].text = "Scenario"
         header_cells[2].text = "Status"
         log.debug(reporter)
-        feature_keys = list(reporter.keys())
-        feature_keys.sort()
+        feature_keys = sorted(reporter.keys())
         for feature_key in feature_keys:
-            scenario_keys = list(reporter[feature_key].keys())
-            scenario_keys.sort()
+            scenario_keys = sorted(reporter[feature_key].keys())
             log.debug(f"Create table summary {scenario_keys}")
             for scenario_key in scenario_keys:
                 row_cells = table_instance.add_row().cells
@@ -471,3 +582,10 @@ class ExportUtilities:
                 else:
                     self.document.add_paragraph(line.rstrip(), style='No Spacing')
         return test_count, succeed_count, failed_count
+
+
+def insert_text(document, text):
+    my_parser = HtmlToDocx()
+    md = MarkdownIt()
+    md.enable('table')
+    my_parser.add_html_to_document(md.render(text), document)

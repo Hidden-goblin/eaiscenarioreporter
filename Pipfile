@@ -14,6 +14,9 @@ Pillow = "*"
 radon = "*"
 matplotlib = "*"
 pyinstaller = "==4.5.1"
+marko = "*"
+markdown-it-py = "*"
+htmldocx = "*"
 
 [requires]
 python_version = "3.8"
