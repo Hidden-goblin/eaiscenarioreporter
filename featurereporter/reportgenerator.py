@@ -298,7 +298,7 @@ class ExportUtilities:
         # TODO resize image using PIL and save to gen_pic_path
         if width > 580 and height < 841:
             new_width = 580
-            new_height = 580 / ratio
+            new_height = int(580 / ratio)
             # image.resize()
             # self.document.add_picture(str(gen_pic_path.absolute()),
             #                           width=Cm(15),
