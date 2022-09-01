@@ -6,9 +6,13 @@ from csv import DictWriter
 import re
 
 
+
 class EaiCsv(Formatter):
     name = "eaicsv"
-    description = "Basic csv formatter for bulk insertion"
+    description = """Basic csv formatter for bulk insertion.
+    Epic tag discrimination is controlled by userdata EaiCsv.epic (default 'epic=')
+    Scenario id tag discrimination is controlled by userdata EaiCsv.scenario (default 'id=')
+    """
 
     def __init__(self, stream_opener, config, **kwargs):
         super(EaiCsv, self).__init__(stream_opener, config)
@@ -19,6 +23,16 @@ class EaiCsv(Formatter):
         self.__current_scenario_id = None
         self.__current_status = None
         self.__outline_order = None
+        # UserData
+        if "userdata" in config.defaults and "EaiCsv.epic" in config.defaults["userdata"]:
+            self.__epic = config.defaults["userdata"]["EaiCsv.epic"]
+        else:
+            self.__epic = "epic="
+
+        if "userdata" in config.defaults and "EaiCsv.scenario" in config.defaults["userdata"]:
+            self.__scenario_id = config.defaults["userdata"]["EaiCsv.scenario"]
+        else:
+            self.__scenario_id = "id="
         # -- ENSURE: Output stream is open.
         self.stream = self.open()
 
@@ -26,8 +40,8 @@ class EaiCsv(Formatter):
         self.__current_feature = feature.name
         for tag in feature.tags:
             self.__current_epic = None
-            if "epic=" in tag:
-                self.__current_epic = tag.replace("epic=", "")
+            if self.__epic in tag:
+                self.__current_epic = tag.replace(self.__epic, "")
                 break
 
     def add_result(self):
@@ -44,6 +58,7 @@ class EaiCsv(Formatter):
             self.add_result()
         if "Outline" not in scenario.keyword:
             self.__current_scenario_name = scenario.name
+            self.__outline_order = None
         else:
             match = re.match(r'(?P<name>[\d\w\s]*) -- @(?P<order>\d+\.\d+) (?P<subname>.*)',
                              scenario.name)
@@ -51,8 +66,8 @@ class EaiCsv(Formatter):
             self.__outline_order = match["order"]
         for tag in scenario.tags:
             self.__current_scenario_id = None
-            if "id=" in tag:
-                self.__current_scenario_id = tag.replace("id=", "")
+            if self.__scenario_id in tag:
+                self.__current_scenario_id = tag.replace(self.__scenario_id, "")
                 break
 
     def result(self, step):
