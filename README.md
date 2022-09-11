@@ -130,6 +130,43 @@ EaiCsv.scenario = my_scenario_id_tag
 ```
 
 
+The csv output is 
+
+```csv
+epic, feature, scenario_id, scenario, status, order
+"epic name fetched from the epic's tag", "feature name", "scenario id fetched from the id's tag", "scenario name", "execution status", "order for outline scenario"
+```
+
+The first line contains the csv header.
+
+
+## Behave csv 'full' formatter
+
+To use the default setting just use the following (`-d` is for dry-run).
+
+**Please mind** this formatter is for dry-run only.
+
+```commandline
+behave -d -f featurereporter.csvformatter:EaiCsvFull -o output.csv
+```
+
+Add in `behave.ini` the following to update the tag setting. You can have a `=` symbol in your tag definition.
+
+```ini
+[behave.userdata]
+EaiCsv.epic = my_epic_tag
+EaiCsv.scenario = my_scenario_id_tag
+```
+
+
+The csv output is 
+
+```csv
+epic, feature_filename, feature_name, feature_tags, feature_description, scenario_id, scenario_name, scenario_tags, scenario_description, scenario_is_outline, scenario_steps
+"epic name", "feature filename", "feature name (following the 'Feature:' element)", "feature tags", "feature description", "scenario id fetched from the id's tag", "scenario name", "scenario tags", "scenario description", "True if the scenario is an outline one", "scenario's steps without background"
+```
+
+The first line contains the csv header.
 
 ## Disclaimer
 
