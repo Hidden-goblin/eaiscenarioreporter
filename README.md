@@ -9,6 +9,15 @@ Optionally, it adds the last automated execution of these scenarios.
 **Please note!** This package heavily relies on the [Behave package](https://behave.readthedocs.io/en/stable/) in order 
 to process feature file and execution results format.
 
+Moreover, it provides a basic behave csv formatter. You can:
+
+- have a csv result for each scenario.
+- have a csv list of each scenario using the behave's dry run option.
+
+In my feature file I usually add a tag for the epic's name (`@epic=`) and a scenario id (`@id=`).
+
+The csv formatter use these tag by default. Please see below for more details on usage.
+
 ## Installation 
 
 ```
@@ -75,7 +84,7 @@ python3 -m featurereporter --repository path/to/the/feature/files/folder
 
 #### Feature description
 
-All descriptions can use markdown syntax to enhance the report display in docx.
+All descriptions can use Markdown syntax to enhance the report display in docx.
 
 - The matching `[Bb]usiness [Rr]ules` will be replaced by a title with the correct depth `Business rules`
 - The matching sequence `!!Worflow:\s*([\.\d\w\-\_\\\/]*)\s*` points out a puml diagram which will be generated on the fly. 
@@ -103,6 +112,61 @@ Currently, all puml schema are processed using the GraphViz library. Your system
 
 The plantuml's jar version is 1.2022.1. Please see [PlantUml page](https://plantuml.com/en/).
 
+
+## Behave csv formatter
+
+To use the default setting just use the following (`-d` is for dry-run)
+
+```commandline
+behave -d -f featurereporter.csvformatter:EaiCsv -o output.csv
+```
+
+Add in `behave.ini` the following to update the tag setting. You can have a `=` symbol in your tag definition.
+
+```ini
+[behave.userdata]
+EaiCsv.epic = my_epic_tag
+EaiCsv.scenario = my_scenario_id_tag
+```
+
+
+The csv output is 
+
+```csv
+epic, feature, scenario_id, scenario, status, order
+"epic name fetched from the epic's tag", "feature name", "scenario id fetched from the id's tag", "scenario name", "execution status", "order for outline scenario"
+```
+
+The first line contains the csv header.
+
+
+## Behave csv 'full' formatter
+
+To use the default setting just use the following (`-d` is for dry-run).
+
+**Please mind** this formatter is for dry-run only.
+
+```commandline
+behave -d -f featurereporter.csvformatter:EaiCsvFull -o output.csv
+```
+
+Add in `behave.ini` the following to update the tag setting. You can have a `=` symbol in your tag definition.
+
+```ini
+[behave.userdata]
+EaiCsv.epic = my_epic_tag
+EaiCsv.scenario = my_scenario_id_tag
+```
+
+
+The csv output is 
+
+```csv
+epic, feature_filename, feature_name, feature_tags, feature_description, scenario_id, scenario_name, scenario_tags, scenario_description, scenario_is_outline, scenario_steps
+"epic name", "feature filename", "feature name (following the 'Feature:' element)", "feature tags", "feature description", "scenario id fetched from the id's tag", "scenario name", "scenario tags", "scenario description", "True if the scenario is an outline one", "scenario's steps without background"
+```
+
+The first line contains the csv header.
 
 ## Disclaimer
 
