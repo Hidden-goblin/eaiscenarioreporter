@@ -1,10 +1,11 @@
 # -*- Product under GNU GPL v3 -*-
 # -*- Author: E.Aivayan -*-
+import csv
+
 from behave.formatter.base import Formatter
 from behave.model import Status
 from csv import DictWriter
 import re
-
 
 
 class EaiCsv(Formatter):
@@ -89,7 +90,8 @@ class EaiCsv(Formatter):
                                           "scenario_id",
                                           "scenario",
                                           "status",
-                                          "order"])
+                                          "order"],
+                            quoting=csv.QUOTE_ALL)
         writer.writeheader()
         writer.writerows(self.__result)
 
@@ -210,7 +212,8 @@ class EaiCsvFull(Formatter):
                                           "scenario_tags",
                                           "scenario_description",
                                           "scenario_is_outline",
-                                          "scenario_steps"])
+                                          "scenario_steps"],
+                            quoting=csv.QUOTE_ALL)
         writer.writeheader()
         writer.writerows([{"epic": item} for item in self.__epics])
         writer.writerows(self.__features)
