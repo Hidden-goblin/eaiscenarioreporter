@@ -30,7 +30,13 @@ class ExportUtilities:
         self.__user_story_tag_prefix = user_story_tag_prefix
         self.__report_title = report_title
         self.__document = None
-        version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)
+        try:
+            version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT)
+        except Exception as exception:
+            log.warning(f"Check java version error\n JRE might not be installed."
+                        f"\n Subprocess spawn {exception.args}")
+            version = ""
+
         self.__jre_present = bool(version)
         self.__jar_path = f"{os.path.dirname(os.path.realpath(__file__))}/assets/plantuml.jar"
         self.__current_feature_tags = None
@@ -105,23 +111,26 @@ class ExportUtilities:
 
     def __forewords_inline_puml(self, match_obj):
         """Generate inline puml and insert"""
-        current = self.__inline_counter
-        temp_puml = Path(f"{tempfile.gettempdir()}/inline_p_{current}.puml")
-        temp_puml = temp_puml.resolve()
-        with open(temp_puml, "w") as file:
-            file.write(match_obj.group(1))
-        subprocess.run(
-            ["java", "-Djava.awt.headless=true",
-             "-jar", Path(self.__jar_path).absolute(),
-             temp_puml,
-             "-o", Path(f"{tempfile.gettempdir()}")])
-        gen_pic_path = Path(f'{tempfile.gettempdir()}/{temp_puml.name.split(".")[0]}.png')
-        self.__resize_schema(gen_pic_path)
-        generated_path = re.sub(r'\\',
-                                '/',
-                                str(gen_pic_path.absolute()))
-        self.__inline_counter += 1
-        return f"\n![Diag {current}]({generated_path})\n"
+        if self.__jre_present:
+            current = self.__inline_counter
+            temp_puml = Path(f"{tempfile.gettempdir()}/inline_p_{current}.puml")
+            temp_puml = temp_puml.resolve()
+            with open(temp_puml, "w") as file:
+                file.write(match_obj.group(1))
+            subprocess.run(
+                ["java", "-Djava.awt.headless=true",
+                 "-jar", Path(self.__jar_path).absolute(),
+                 temp_puml,
+                 "-o", Path(f"{tempfile.gettempdir()}")])
+            gen_pic_path = Path(f'{tempfile.gettempdir()}/{temp_puml.name.split(".")[0]}.png')
+            self.__resize_schema(gen_pic_path)
+            generated_path = re.sub(r'\\',
+                                    '/',
+                                    str(gen_pic_path.absolute()))
+            self.__inline_counter += 1
+            return f"\n![Diag {current}]({generated_path})\n"
+        else:
+            return ""
 
     def __forewords_picture(self, match_obj):
         generated_path = re.sub(
@@ -149,7 +158,7 @@ class ExportUtilities:
 
         # Check which drive is it if window
         self.__document = Document()
-        self.document.add_heading("{}".format(self.__report_title), 0)  # Document title
+        self.document.add_heading(f"{self.__report_title}", 0)  # Document title
         self.document.add_page_break()
         # Is copying file needed
         if platform.system() == "Windows":
@@ -179,15 +188,16 @@ class ExportUtilities:
                     content = re.sub(r'!\[([^\[\]]+)\]\(([^\s]+)\)',
                                      self.__forewords_picture,
                                      content)
-                    # Process inline puml diagrams
-                    content = re.sub(r'```puml[\r|\n]{1,2}([^`]*)```',
-                                     self.__forewords_inline_puml,
-                                     content,
-                                     flags=re.MULTILINE)
-                    # Process diagrams
-                    content = re.sub(r'!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*',
-                                     self.__forewords_schema_replacement,
-                                     content)
+                    if self.__jre_present:
+                        # Process inline puml diagrams
+                        content = re.sub(r'```puml[\r|\n]{1,2}([^`]*)```',
+                                         self.__forewords_inline_puml,
+                                         content,
+                                         flags=re.MULTILINE)
+                        # Process diagrams
+                        content = re.sub(r'!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*',
+                                         self.__forewords_schema_replacement,
+                                         content)
                     insert_text(self.document, content)
             self.document.add_page_break()
 
@@ -195,7 +205,7 @@ class ExportUtilities:
             self.__include_result = True
             self.document.add_heading("Living documentation", 1)
 
-        for file in glob.iglob("{}/**/*.feature".format(self.__feature_repository),
+        for file in glob.iglob(f"{self.__feature_repository}/**/*.feature",
                                recursive=True):  # Use the iterator as it's cleaner
             # log.debug()
             log.info(f"Computing {os.path.abspath(file)}")
@@ -245,7 +255,7 @@ class ExportUtilities:
                     run = paragraph.add_run()
                     run.underline = True
                     run.text = "Related to the user story: "
-                    paragraph.add_run("{}".format(str(matcher).strip('[]')))
+                    paragraph.add_run(f"{str(matcher).strip('[]')}")
                     tagged = True
             if feature.tags:
                 if tagged:
@@ -327,10 +337,14 @@ class ExportUtilities:
         new_image.save(str(schema_picture_path.absolute()), format="png")
 
     def __schema_replacement(self, match_obj):
-        generated_path = self.__generate_diagrams(match_obj.group(1))
-        generated_path = re.sub(r'\\', '/', generated_path)
-        return (f"\n![Schema]({generated_path})\n"
+        result = f"!!Workflow: {match_obj.group(1)}\n"
+        if self.__jre_present:
+            generated_path = self.__generate_diagrams(match_obj.group(1))
+            generated_path = re.sub(r'\\', '/', generated_path)
+            result = (f"\n![Schema]({generated_path})\n"
                 f"!!Workflow: {match_obj.group(1)}\n")
+
+        return result
 
     def add_description(self, feature=None):
         """
@@ -345,6 +359,20 @@ class ExportUtilities:
             # TODO consider feature.description as markdown.
             # TODO make relevant transformation for Business Rules, workflow and user story
             description = "\n".join(feature.description)
+            # Capture user story and format
+
+            description = re.sub(r"as([ \w\"']*)",
+                                 lambda x:f"<b>As</b> {x.group(1)} <br />",
+                                 description,
+                                 flags=re.IGNORECASE)
+            description = re.sub(r"i want([ \w\"']*)",
+                                 lambda x: f"<b>I want</b> {x.group(1)} <br />",
+                                 description,
+                                 flags=re.IGNORECASE)
+            description = re.sub(r"so that([ \w\"']*)",
+                                 lambda x: f"<b>So that</b> {x.group(1)} <br />",
+                                 description,
+                                 flags=re.IGNORECASE)
             # replace business rules with title h2
             description = re.sub(r'[Bb]usiness [Rr]ules.*',
                                  f"{'#' * self._get_level('h2')} Business Rules",

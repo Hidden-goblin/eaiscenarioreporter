@@ -231,9 +231,9 @@ class EaiCsvFull(Formatter):
 class FeatureModel:
     def __init__(self, name, filename, epic, tags, description):
         self.name = name
-        self.filename = filename
+        self.filename = re.sub(r'^(\.\./)*', '', filename)
         self.epic = epic
-        self.tags = tags
+        self.tags = ", ".join(tags)
         self.description = description
 
     def to_dict(self):
@@ -248,8 +248,8 @@ class ScenarioModel:
     def __init__(self, scenario_id, name, filename, tags, description, is_outline):
         self.scenario_id = scenario_id
         self.name = name
-        self.filename = filename
-        self.tags = tags
+        self.filename = re.sub(r'^(\.\./)*', '', filename)
+        self.tags = ", ".join(tags)
         self.description = description
         self.outline = is_outline
         self._steps = []
