@@ -133,8 +133,8 @@ EaiCsv.scenario = my_scenario_id_tag
 The csv output is 
 
 ```csv
-epic, feature, scenario_id, scenario, status, order
-"epic name fetched from the epic's tag", "feature name", "scenario id fetched from the id's tag", "scenario name", "execution status", "order for outline scenario"
+epic, feature_name, scenario_id, scenario_name, status, order
+"epic name fetched from the epic's tag", "feature name", "scenario id fetched from the id's tag and order for outline scenario", "scenario name", "execution status", "order for outline scenario"
 ```
 
 The first line contains the csv header.

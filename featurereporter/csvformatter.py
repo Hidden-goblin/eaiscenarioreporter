@@ -1,11 +1,14 @@
 # -*- Product under GNU GPL v3 -*-
 # -*- Author: E.Aivayan -*-
 import csv
+import re
+import logging
 
 from behave.formatter.base import Formatter
 from behave.model import Status
 from csv import DictWriter
-import re
+
+log = logging.getLogger(__name__)
 
 
 class EaiCsv(Formatter):
@@ -45,18 +48,10 @@ class EaiCsv(Formatter):
                 self.__current_epic = tag.replace(self.__epic, "")
                 break
 
-    def add_result(self):
-        self.__result.append({"epic": self.__current_epic,
-                              "feature": self.__current_feature,
-                              "scenario_id": self.__current_scenario_id,
-                              "scenario": self.__current_scenario_name,
-                              "status": self.__current_status,
-                              "order": self.__outline_order})
-        self.__current_status = None
-
     def scenario(self, scenario):
         if self.__current_status is not None:
             self.add_result()
+        self.__current_status = Status.undefined
         if "Outline" not in scenario.keyword:
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
@@ -69,7 +64,20 @@ class EaiCsv(Formatter):
             self.__current_scenario_id = None
             if self.__scenario_id in tag:
                 self.__current_scenario_id = tag.replace(self.__scenario_id, "")
+                if self.__outline_order is not None:
+                    self.__current_scenario_id = (f"{self.__current_scenario_id}-"
+                                                  f"{self.__outline_order}")
                 break
+
+    def add_result(self):
+        log.info(f"Add scenario {self.__current_scenario_id} to result")
+        self.__result.append({"epic": self.__current_epic,
+                              "feature_name": self.__current_feature,
+                              "scenario_id": self.__current_scenario_id,
+                              "scenario_name": self.__current_scenario_name,
+                              "status": self.__current_status,
+                              "order": self.__outline_order})
+        self.__current_status = None
 
     def result(self, step):
         converter = {f"{Status.failed}": "failed",
@@ -86,9 +94,9 @@ class EaiCsv(Formatter):
     def close(self):
         self.stream.reconfigure(newline="")
         writer = DictWriter(self.stream, ["epic",
-                                          "feature",
+                                          "feature_name",
                                           "scenario_id",
-                                          "scenario",
+                                          "scenario_name",
                                           "status",
                                           "order"],
                             quoting=csv.QUOTE_ALL)
@@ -118,9 +126,7 @@ class EaiCsvFull(Formatter):
         self.__current_feature_model = None
         self.__current_scenario_model = None
         # UserData
-        print(config.defaults)
         if "userdata" in config.defaults and "EaiCsv.epic" in config.defaults["userdata"]:
-            print(config.defaults["userdata"]["EaiCsv.epic"])
             self.__epic = config.defaults["userdata"]["EaiCsv.epic"]
         else:
             self.__epic = "epic="
@@ -150,6 +156,7 @@ class EaiCsvFull(Formatter):
     def scenario(self, scenario):
         if self.__current_status is not None:
             self.add_result()
+        self.__current_status = Status.undefined
         if "Outline" not in scenario.keyword:
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
@@ -182,6 +189,7 @@ class EaiCsvFull(Formatter):
                 False)
 
     def add_result(self):
+        log.info(f"Add scenario {self.__current_scenario_id} to result")
         self.__result.append(self.__current_scenario_model.to_dict())
         self.__current_status = None
 
