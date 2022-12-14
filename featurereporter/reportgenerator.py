@@ -358,9 +358,24 @@ class ExportUtilities:
         try:
             # TODO consider feature.description as markdown.
             # TODO make relevant transformation for Business Rules, workflow and user story
-            description = "\n".join(feature.description)
-            # Capture user story and format
 
+            # Add space around table as behave strip empty new lines
+            insertion_index = []
+            is_pipe = False
+            for index, item in enumerate(feature.description):
+                if str(item).startswith("|") and not is_pipe:
+                    insertion_index.append(index)
+                    is_pipe = True
+                elif not str(item).startswith("|") and is_pipe:
+                    insertion_index.append(index)
+                    is_pipe = False
+            insertion_index.reverse()
+            description_list: list = feature.description
+            for index in insertion_index:
+                description_list.insert(index, '\n')
+            description = "\n".join(description_list)
+            # Capture user story and format
+            # SPEC: User story spans on three lines starting with As, I want to, So that
             description = re.sub(r"as([ \w\"'\.\-]*)",
                                  lambda x:f"<b>As</b> {x.group(1)} <br />",
                                  description,
@@ -381,6 +396,11 @@ class ExportUtilities:
             description = re.sub(r'!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*',
                                  self.__schema_replacement,
                                  description)
+            # replace starting $ character with ## + 1 per $ character sup.
+            # Behave interprets # character as a comment
+            description = re.sub(r'^([$]{1,10})',lambda x: f"{'#'*(len(x.group(1)) + 1)}",
+                                 description,
+                                 flags=re.MULTILINE)
             # include md description in the document
             insert_text(self.document, description)
             # for line in feature.description:
