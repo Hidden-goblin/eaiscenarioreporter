@@ -361,15 +361,15 @@ class ExportUtilities:
             description = "\n".join(feature.description)
             # Capture user story and format
 
-            description = re.sub(r"as([ \w\"']*)",
+            description = re.sub(r"as([ \w\"'\.\-]*)",
                                  lambda x:f"<b>As</b> {x.group(1)} <br />",
                                  description,
                                  flags=re.IGNORECASE)
-            description = re.sub(r"i want([ \w\"']*)",
+            description = re.sub(r"i want([ \w\"'\.\-]*)",
                                  lambda x: f"<b>I want</b> {x.group(1)} <br />",
                                  description,
                                  flags=re.IGNORECASE)
-            description = re.sub(r"so that([ \w\"']*)",
+            description = re.sub(r"so that([ \w\"'\.\-]*)",
                                  lambda x: f"<b>So that</b> {x.group(1)} <br />",
                                  description,
                                  flags=re.IGNORECASE)
