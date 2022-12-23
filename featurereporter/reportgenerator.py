@@ -309,29 +309,18 @@ class ExportUtilities:
         if width > 580 and height < 841:
             new_width = 580
             new_height = int(580 / ratio)
-            # image.resize()
-            # self.document.add_picture(str(gen_pic_path.absolute()),
-            #                           width=Cm(15),
-            #                           height=Cm(15 / ratio))
         elif width < 580 and height > 841:
             new_height = 841
             new_width = int(841 * ratio)
-            # self.document.add_picture(str(gen_pic_path.absolute()),
-            #                           width=Cm(20 * ratio),
-            #                           height=Cm(20))
         elif width > 580 and height > 841:
             reduce_factor = max(width / 580, height / 841)
             new_width = int(
                 (width * 580) / (580 * reduce_factor))  # Double proportionality on ratio
             # and pixel against cm
             new_height = int((height * 841) / (841 * reduce_factor))
-            # self.document.add_picture(str(gen_pic_path.absolute()),
-            #                           width=Cm(new_width),
-            #                           height=Cm(new_height))
         else:
             new_width = width
             new_height = height
-            # self.document.add_picture(str(gen_pic_path.absolute()))
         # TODO return path so that it can be included in generator
         new_image = image.resize((new_width, new_height))
         new_image.save(str(schema_picture_path.absolute()), format="png")
@@ -403,19 +392,6 @@ class ExportUtilities:
                                  flags=re.MULTILINE)
             # include md description in the document
             insert_text(self.document, description)
-            # for line in feature.description:
-            #     if re.match(r'\*.*', line):
-            #         self.document.add_paragraph(line[1:], style='List Bullet')
-            #     elif re.match('[Bb]usiness [Rr]ules.*', line):
-            #         paragraph = self.document.add_paragraph("")
-            #         paragraph.add_run(line).bold = True
-            #     elif re.match(r'!!Workflow:.*', line) and self.__jre_present:
-            #         match = re.match(r'^!!Workflow:\s*([\.\d\w\-\_\\\/]*)\s*$', line)
-            #         if match:
-            #             self.document.add_picture(self.__generate_diagrams(match.group(1)))
-            #         self.document.add_paragraph(line)
-            #     else:
-            #         self.document.add_paragraph(line)
         except Exception as exception:
             log.error(exception)
             raise Exception(exception) from exception
@@ -429,7 +405,8 @@ class ExportUtilities:
         try:
             if feature.background is not None:
                 self.print_scenario_title(scenario_keyword=feature.background.keyword,
-                                          scenario_name=feature.background.name)
+                                          scenario_name=feature.background.name,
+                                          level=self._get_level("h2"))
                 self.print_steps(steps=feature.background.steps)
         except Exception as exception:
             log.error(exception)
@@ -491,9 +468,6 @@ class ExportUtilities:
         :return: None
         """
         self.document.add_heading(f"{scenario_keyword}: {scenario_name}", level=level)
-        # paragraph = document.add_paragraph("")
-        # paragraph.add_run("{}:".format(scenario_keyword)).bold = True
-        # paragraph.add_run(scenario_name)
 
     def print_steps(self, steps=None):
         """
@@ -511,7 +485,7 @@ class ExportUtilities:
 
             paragraph = self.document.add_paragraph("", style='No Spacing')
             paragraph.add_run(keyword).bold = True
-            paragraph.add_run(" {}".format(step.name))
+            paragraph.add_run(f" {step.name}")
 
             if step.table is not None:
                 self.print_table(table=step.table)
