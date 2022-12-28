@@ -56,7 +56,7 @@ class EaiCsv(Formatter):
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
         else:
-            match = re.match(r'(?P<name>[\d\w\s]*) -- @(?P<order>\d+\.\d+) (?P<subname>.*)',
+            match = re.match(r'(?P<name>.*) -- @(?P<order>\d+\.\d+) (?P<subname>.*)',
                              scenario.name)
             self.__current_scenario_name = f'{match["name"]}-{match["subname"]}'
             self.__outline_order = match["order"]
@@ -162,7 +162,7 @@ class EaiCsvFull(Formatter):
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
         else:
-            match = re.match(r'(?P<name>[\d\w\s]*) -- @(?P<order>\d+\.\d+) (?P<subname>.*)',
+            match = re.match(r'(?P<name>.*) -- @(?P<order>\d+\.\d+) (?P<subname>.*)',
                              scenario.name)
             self.__current_scenario_name = f'{match["name"]}-{match["subname"]}'
             self.__outline_order = match["order"]
