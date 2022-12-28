@@ -102,6 +102,7 @@ class EaiCsv(Formatter):
                             quoting=csv.QUOTE_ALL)
         writer.writeheader()
         writer.writerows(self.__result)
+        self.close_stream()
 
 
 class EaiCsvFull(Formatter):
@@ -226,6 +227,7 @@ class EaiCsvFull(Formatter):
         writer.writerows([{"epic": item} for item in self.__epics])
         writer.writerows(self.__features)
         writer.writerows(self.__result)
+        self.close_stream()
 
 
 class FeatureModel:
