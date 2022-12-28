@@ -90,6 +90,12 @@ class EaiCsv(Formatter):
 
     def eof(self):
         self.add_result()
+        self.__current_feature = None
+        self.__current_epic = None
+        self.__current_scenario_name = None
+        self.__current_scenario_id = None
+        self.__current_status = None
+        self.__outline_order = None
 
     def close(self):
         self.stream.reconfigure(newline="")
@@ -208,6 +214,14 @@ class EaiCsvFull(Formatter):
 
     def eof(self):
         self.add_result()
+        self.__current_feature = None
+        self.__current_epic = None
+        self.__current_scenario_name = None
+        self.__current_scenario_id = None
+        self.__current_status = None
+        self.__outline_order = None
+        self.__current_feature_model = None
+        self.__current_scenario_model = None
 
     def close(self):
         self.stream.reconfigure(newline="")
