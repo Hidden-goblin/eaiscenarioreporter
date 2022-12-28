@@ -11,6 +11,15 @@ from csv import DictWriter
 log = logging.getLogger(__name__)
 
 
+def _status_converter(status: Status) -> str:
+    converter = {f"{Status.failed}": "failed",
+                 f"{Status.executing}": "executing",
+                 f"{Status.passed}": "passed",
+                 f"{Status.skipped}": "skipped",
+                 f"{Status.undefined}": "undefined",
+                 f"{Status.untested}": "untested"}
+    return converter[str(status)]
+
 class EaiCsv(Formatter):
     name = "eaicsv"
     description = """Basic csv formatter for bulk insertion.
@@ -51,7 +60,7 @@ class EaiCsv(Formatter):
     def scenario(self, scenario):
         if self.__current_status is not None:
             self.add_result()
-        self.__current_status = Status.undefined
+        self.__current_status = _status_converter(Status.undefined)
         if "Outline" not in scenario.keyword:
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
@@ -80,13 +89,7 @@ class EaiCsv(Formatter):
         self.__current_status = None
 
     def result(self, step):
-        converter = {f"{Status.failed}": "failed",
-                     f"{Status.executing}": "executing",
-                     f"{Status.passed}": "passed",
-                     f"{Status.skipped}": "skipped",
-                     f"{Status.undefined}": "undefined",
-                     f"{Status.untested}": "untested"}
-        self.__current_status = converter[str(step.status)]
+        self.__current_status = _status_converter(step.status)
 
     def eof(self):
         self.add_result()
@@ -163,7 +166,7 @@ class EaiCsvFull(Formatter):
     def scenario(self, scenario):
         if self.__current_status is not None:
             self.add_result()
-        self.__current_status = Status.undefined
+        self.__current_status = _status_converter(Status.undefined)
         if "Outline" not in scenario.keyword:
             self.__current_scenario_name = scenario.name
             self.__outline_order = None
@@ -204,13 +207,7 @@ class EaiCsvFull(Formatter):
         self.__current_scenario_model.steps = f"{step.keyword} {step.name}"
 
     def result(self, step):
-        converter = {f"{Status.failed}": "failed",
-                     f"{Status.executing}": "executing",
-                     f"{Status.passed}": "passed",
-                     f"{Status.skipped}": "skipped",
-                     f"{Status.undefined}": "undefined",
-                     f"{Status.untested}": "untested"}
-        self.__current_status = converter[str(step.status)]
+        self.__current_status = _status_converter(step.status)
 
     def eof(self):
         self.add_result()
