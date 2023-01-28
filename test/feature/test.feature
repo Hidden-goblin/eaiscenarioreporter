@@ -6,6 +6,10 @@ Feature: Test feature
 
   !!Workflow: ../workflows/test.puml
 
+  Background:
+    Given This background is beautiful
+    And I want to include it at the right level
+
   Scenario:
     Given I write a workflow reference
     When I generate the report
