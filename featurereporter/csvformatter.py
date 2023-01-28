@@ -3,6 +3,7 @@
 import csv
 import re
 import logging
+from pathlib import Path
 
 from behave.formatter.base import Formatter
 from behave.model import Status
@@ -135,6 +136,7 @@ class EaiCsvFull(Formatter):
         self.__outline_order = None
         self.__current_feature_model = None
         self.__current_scenario_model = None
+        self.__base_dir = str(Path(config.base_dir).resolve().absolute())
         # UserData
         if "userdata" in config.defaults and "EaiCsv.epic" in config.defaults["userdata"]:
             self.__epic = config.defaults["userdata"]["EaiCsv.epic"]
@@ -155,8 +157,10 @@ class EaiCsvFull(Formatter):
             if self.__epic in tag:
                 self.__current_epic = tag.replace(self.__epic, "")
                 break
+        filename = str(Path(feature.filename).resolve().absolute())
+        filename = filename.replace(self.__base_dir, "")
         self.__current_feature_model = FeatureModel(feature.name,
-                                                    feature.filename,
+                                                    filename,
                                                     self.__current_epic,
                                                     feature.tags,
                                                     feature.description)
