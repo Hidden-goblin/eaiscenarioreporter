@@ -204,7 +204,8 @@ class EaiCsvFull(Formatter):
 
     def add_result(self):
         log.info(f"Add scenario {self.__current_scenario_id} to result")
-        self.__result.append(self.__current_scenario_model.to_dict())
+        if self.__current_scenario_model is not None:
+            self.__result.append(self.__current_scenario_model.to_dict())
         self.__current_status = None
 
     def step(self, step):
