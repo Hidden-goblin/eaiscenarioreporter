@@ -209,7 +209,13 @@ class EaiCsvFull(Formatter):
         self.__current_status = None
 
     def step(self, step):
-        self.__current_scenario_model.steps = f"{step.keyword} {step.name}"
+        content = f"{step.keyword} {step.name}"
+        if step.table is not None:
+            content = f"{content} \n |{'|'.join(step.table.headings)}|"
+            for row in step.table.rows:
+                content = f"{content} \n  |{'|'.join(row)} |"
+            
+        self.__current_scenario_model.steps = content
 
     def result(self, step):
         self.__current_status = _status_converter(step.status)
