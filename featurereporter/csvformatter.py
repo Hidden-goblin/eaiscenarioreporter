@@ -102,7 +102,7 @@ class EaiCsv(Formatter):
         self.__outline_order = None
 
     def close(self):
-        self.stream.reconfigure(newline="")
+        self.stream.reconfigure(newline="", encoding="utf-8")
         writer = DictWriter(self.stream, ["epic",
                                           "feature_name",
                                           "scenario_id",
@@ -226,7 +226,7 @@ class EaiCsvFull(Formatter):
         self.__current_scenario_model = None
 
     def close(self):
-        self.stream.reconfigure(newline="")
+        self.stream.reconfigure(newline="", encoding="utf-8")
         writer = DictWriter(self.stream, ["epic",
                                           "feature_filename",
                                           "feature_name",
