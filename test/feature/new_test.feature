@@ -1,4 +1,4 @@
-@TF-01 @test
+@TF-01 @test @epic=test
 Feature: New Test feature
 
   As An End User
@@ -11,7 +11,7 @@ Feature: New Test feature
   | --------- | ------- |
   | one| two|
 
-  @event
+  @event @id=test_1
   Scenario:
     Given I write a workflow reference
     When I generate the report

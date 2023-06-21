@@ -1,13 +1,15 @@
 # -*- Product under GNU GPL v3 -*-
 # -*- Author: E.Aivayan -*-
-import csv
 import re
+
 import logging
+
 from pathlib import Path
 
 from behave.formatter.base import Formatter
 from behave.model import Status
-from csv import DictWriter
+
+from csv import DictWriter, QUOTE_ALL
 
 log = logging.getLogger(__name__)
 
@@ -109,7 +111,7 @@ class EaiCsv(Formatter):
                                           "scenario_name",
                                           "status",
                                           "order"],
-                            quoting=csv.QUOTE_ALL)
+                            quoting=QUOTE_ALL)
         writer.writeheader()
         writer.writerows(self.__result)
         self.close_stream()
@@ -149,6 +151,7 @@ class EaiCsvFull(Formatter):
             self.__scenario_id = "id="
         # -- ENSURE: Output stream is open.
         self.stream = self.open()
+
 
     def feature(self, feature):
         self.__current_feature = feature.name
@@ -206,6 +209,7 @@ class EaiCsvFull(Formatter):
         log.info(f"Add scenario {self.__current_scenario_id} to result")
         if self.__current_scenario_model is not None:
             self.__result.append(self.__current_scenario_model.to_dict())
+            self.__current_scenario_model = None
         self.__current_status = None
 
     def step(self, step):
@@ -244,7 +248,7 @@ class EaiCsvFull(Formatter):
                                           "scenario_description",
                                           "scenario_is_outline",
                                           "scenario_steps"],
-                            quoting=csv.QUOTE_ALL)
+                            quoting=QUOTE_ALL)
         writer.writeheader()
         writer.writerows([{"epic": item} for item in self.__epics])
         writer.writerows(self.__features)

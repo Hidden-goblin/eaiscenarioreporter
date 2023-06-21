@@ -1,3 +1,4 @@
+@epic=test
 Feature: Test feature
 
   As An End User
@@ -9,7 +10,7 @@ Feature: Test feature
   Background:
     Given This background is beautiful
     And I want to include it at the right level
-
+    @id=test_1
   Scenario:
     Given I write a workflow reference
     When I generate the report

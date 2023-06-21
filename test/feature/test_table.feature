@@ -1,3 +1,4 @@
+@epic=test2
 Feature: Test feature
 
   As An End User
@@ -35,6 +36,7 @@ Feature: Test feature
   | --------- | ------- |
   | one| two|
 
+  @id=t_test_1
   Scenario:
     Given I write a workflow reference
     When I generate the report
